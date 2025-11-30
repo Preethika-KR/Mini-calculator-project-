@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+char *expr;
+
+// Function prototypes
+float parseExpression();
+float parseTerm();
+float parseFactor();
+float parseNumber();
+
+// Function to parse a number (integer or floating point)
+float parseNumber() {
+    float num = 0, frac = 0;
+    float factor = 0.1;
+
+    if (!isdigit(*expr) && *expr != '.') {
+        printf("Error: Expected a number at '%c'\n", *expr);
+        exit(1);
+    }
+
+    // Parse integer part
+    while (isdigit(*expr)) {
+        num = num * 10 + (*expr - '0');
+        expr++;
+    }
+
+    // Parse fractional part
+    if (*expr == '.') {
+        expr++;
+        if (!isdigit(*expr)) {
+            printf("Error: Invalid decimal number\n");
+            exit(1);
+        }
+        while (isdigit(*expr)) {
+            frac += (*expr - '0') * factor;
+            factor /= 10;
+            expr++;
+        }
+        num += frac;
+    }
+
+    return num;
+}
+
+// Parse factor: number or expression in parentheses
+float parseFactor() {
+    if (*expr == '(') {
+        expr++;  // skip '('
+        float result = parseExpression();
+        if (*expr == ')') expr++; // skip ')'
+        else {
+            printf("Error: Missing closing parenthesis\n");
+            exit(1);
+        }
+        return result;
+    } else {
+        return parseNumber();
+    }
+}
+
+// Parse term: handles * and /
+float parseTerm() {
+    float result = parseFactor();
+    while (*expr == '*' || *expr == '/') {
+        char op = *expr;
+        expr++;
+        float next = parseFactor();
+        if (op == '*') result *= next;
+        else {
+            if (next == 0) {
+                printf("Error: Division by zero\n");
+                exit(1);
+            }
+            result /= next;
+        }
+    }
+    return result;
+}
+
+// Parse expression: handles + and -
+float parseExpression() {
+    float result = parseTerm();
+    while (*expr == '+' || *expr == '-') {
+        char op = *expr;
+        expr++;
+        float next = parseTerm();
+        if (op == '+') result += next;
+        else result -= next;
+    }
+    return result;
+}
+
+int main() {
+    char input[100];
+    printf("Enter expression: ");
+    scanf("%s", input); // No spaces allowed
+
+    // Validate characters
+    for (int i = 0; input[i]; i++) {
+        if (!isdigit(input[i]) && input[i] != '+' && input[i] != '-' &&
+            input[i] != '*' && input[i] != '/' && input[i] != '(' &&
+            input[i] != ')' && input[i] != '.') {
+            printf("Error: Invalid character '%c' in expression\n", input[i]);
+            return 1;
+        }
+    }
+
+    expr = input;
+    float result = parseExpression();
+
+    if (*expr != '\0') {
+        printf("Error: Unexpected character '%c' in expression\n", *expr);
+        return 1;
+    }
+
+    printf("Result: %.5f\n", result);
+
+    return 0;
+}
